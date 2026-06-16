@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Refining · issue #{{ spec.issue_id }}{% endblock %}
+
+{% block head %}
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<style>
+  :root {
+    --pass: #2f9e44;
+    --fail: #e03131;
+    --border: #dee2e6;
+    --muted: #868e96;
+    --bg-panel: #f8f9fa;
+  }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #212529;
+  }
+  .console-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .console-header h1 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+  }
+  .console {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    min-height: calc(100vh - 56px);
+  }
+  .panel {
+    background: #fff;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .panel-raw {
+    background: var(--bg-panel);
+  }
+  .panel-title,
+  .subpanel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+  }
+  .subpanel-title {
+    font-size: 0.85rem;
+    margin-top: 1.25rem;
+  }
+  .icon {
+    flex: 0 0 auto;
+  }
+  .field-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+  }
+  .field-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+  }
+  .gate-items {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+  }
+  .gate-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    font-size: 0.9rem;
+  }
+  .icon-pass {
+    color: var(--pass);
+  }
+  .icon-fail {
+    color: var(--fail);
+  }
+  .gate-item.is-failing .gate-label {
+    color: var(--muted);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #228be6;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+  }
+  .btn[disabled] {
+    background: var(--bg-panel);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  .needs-input-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .needs-input-item {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+  }
+  .needs-input-flag {
+    flex: 0 0 auto;
+    font-weight: 600;
+    color: #f08c00;
+  }
+  .needs-input-empty {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .raw-meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .raw-feedback {
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="console-header">
+  <h1>Refining issue #{{ spec.issue_id }} · {{ spec.project_id }}</h1>
+</header>
+
+<main class="console">
+  {# Left panel: raw feedback, read-only. The submitter's words do not leak past the gate. #}
+  <section class="panel panel-raw" aria-label="Raw feedback">
+    <h2 class="panel-title">
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M8 9h8" />
+        <path d="M8 13h6" />
+        <path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" />
+      </svg>
+      Raw feedback
+    </h2>
+    <p class="raw-meta">Read-only. The submitter's original report.</p>
+    {% if spec.context %}
+    <p class="raw-feedback">{{ spec.context }}</p>
+    {% else %}
+    <p class="raw-feedback raw-empty">No raw feedback recorded.</p>
+    {% endif %}
+  </section>
+
+  {# Middle panel: editable draft + needs-input flags. #}
+  <div class="panel panel-spec">
+    {% include "partials/spec_form.html" %}
+  </div>
+
+  {# Right panel: the live sync gate. #}
+  <div class="panel panel-gate">
+    {% include "partials/gate_panel.html" %}
+  </div>
+</main>
+{% endblock %}
