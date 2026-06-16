@@ -29,7 +29,7 @@ def sample_spec() -> RefinedSpec:
         issue_id=142,
         project_id="ops-hub",
         summary="Fix fuel total rounding",
-        context="Daily fuel totals are off by a cent for H&H Oil.",
+        context="Daily fuel totals are off by a cent for Acme Co.",
         expected_behavior="Totals match the sum of line items to the exact cent.",
         actual_behavior="Totals are rounded per-line, accumulating a cent of drift.",
         reproduction=[
