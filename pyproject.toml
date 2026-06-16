@@ -30,6 +30,8 @@ select = ["E", "F", "I", "UP", "B", "ANN", "ASYNC"]
 "migrations/*" = ["ANN", "E501"]
 # Keep the (str, Enum) string-enums verbatim per CLAUDE.md §4 (authoritative model).
 "app/models/spec.py" = ["UP042"]
+# seed.py inserts the project root on sys.path before importing app (runnable as a script).
+"scripts/*" = ["E402"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -13,6 +13,12 @@ place (get-or-create) rather than crashing on duplicate primary keys.
 from __future__ import annotations
 
 import asyncio
+import sys
+from pathlib import Path
+
+# Allow running directly as `python scripts/seed.py`: put the project root (the
+# parent of scripts/) on sys.path so `app` is importable without an install.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
