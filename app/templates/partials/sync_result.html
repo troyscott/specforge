@@ -1,0 +1,19 @@
+{# Sync result: shown after a successful gate-cleared sync. R1 renders the
+   GitHub issue body and (behind github_sync_enabled) logs it — no live push.
+   The gate is enforced server-side; this partial only renders on success. #}
+<section id="sync-result" class="sync-result" aria-label="Sync result">
+  <h2 class="panel-title">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20"
+         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M5 12l5 5l10 -10" />
+    </svg>
+    Synced issue #{{ spec.issue_id }}
+  </h2>
+  <p class="sync-meta">
+    Rendered the GitHub issue body for the refined spec. The outbound push stays
+    behind the sync flag; in this release the body is rendered and logged.
+  </p>
+  <pre class="sync-body">{{ issue_body }}</pre>
+</section>
