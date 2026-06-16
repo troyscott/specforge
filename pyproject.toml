@@ -7,7 +7,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "jinja2",
-    "sqlalchemy>=2",
+    "sqlalchemy[asyncio]>=2",
     "aiosqlite",
     "alembic",
     "pydantic>=2",
