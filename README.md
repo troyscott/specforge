@@ -25,5 +25,47 @@ see `CLAUDE.md` for the architecture, data model, and build plan.
 
 ## Development
 
-A full dev runbook (environment setup, seeding, running, and tests) lands with the work item that
-covers the seed/config/runbook. Until then, `CLAUDE.md` § 9 lists the commands.
+### 1. Environment
+
+Uses [micromamba](https://mamba.readthedocs.io/) with an env named `signal` on Python 3.12:
+
+```bash
+micromamba create -n signal python=3.12 -y
+micromamba activate signal
+pip install -e . --group dev          # installs runtime deps + dev tools (pytest, ruff, mypy)
+```
+
+Run any tooling without activating the env via `micromamba run -n signal <cmd>`.
+
+### 2. Configuration
+
+Copy the example env file and fill in your values (the real `.env` is gitignored):
+
+```bash
+cp .env.example .env
+# set ANTHROPIC_API_KEY; DATABASE_URL defaults to sqlite+aiosqlite:///./signal.db
+```
+
+### 3. Database + seed data
+
+Create the schema, then load one demo Customer / Project / Issue so the console has data on first
+run:
+
+```bash
+alembic upgrade head
+python scripts/seed.py
+```
+
+`scripts/seed.py` is idempotent — safe to re-run; it skips rows that already exist.
+
+### 4. Run
+
+```bash
+uvicorn app.main:app --reload --port 8060
+```
+
+### 5. Quality gate (run before every PR)
+
+```bash
+ruff check . && ruff format --check . && mypy app && pytest -q
+```
