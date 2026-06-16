@@ -1,0 +1,29 @@
+{# NEEDS_INPUT flags: the spec's unresolved open questions — every domain
+   assumption the AI could not safely make. Resolved questions drop off. #}
+<section id="needs-input" class="needs-input" aria-label="Needs input">
+  <h3 class="subpanel-title">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="18" height="18"
+         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 19v.01" />
+      <path d="M12 15a3 3 0 1 0 -3 -3" transform="translate(3 0)" />
+      <path d="M8 9a4 4 0 1 1 5.6 3.6c-.6 .3 -1.6 1 -1.6 2.4" />
+    </svg>
+    Needs input
+  </h3>
+
+  {% set unresolved = spec.open_questions | rejectattr('resolved') | list %}
+  {% if unresolved %}
+  <ul class="needs-input-list">
+    {% for q in unresolved %}
+    <li class="needs-input-item" id="question-{{ q.id }}">
+      <span class="needs-input-flag">{{ q.id }}</span>
+      <span class="needs-input-question">{{ q.question }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="needs-input-empty">No open questions.</p>
+  {% endif %}
+</section>
