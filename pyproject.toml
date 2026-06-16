@@ -28,6 +28,8 @@ select = ["E", "F", "I", "UP", "B", "ANN", "ASYNC"]
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN"]
 "migrations/*" = ["ANN", "E501"]
+# Keep the (str, Enum) string-enums verbatim per CLAUDE.md §4 (authoritative model).
+"app/models/spec.py" = ["UP042"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -42,3 +44,5 @@ ignore_errors = true
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+# Domain models TestType / TestPlanItem are named Test* but are not test classes.
+filterwarnings = ["ignore::pytest.PytestCollectionWarning"]
