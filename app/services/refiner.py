@@ -74,7 +74,7 @@ class RefinerClient(Protocol):
 # --- Prompt (CLAUDE.md §5) ----------------------------------------------------
 
 DRAFT_SPEC_SYSTEM_PROMPT = """\
-You are the drafting assistant for the Refining stage of Persepta Signal. You
+You are the drafting assistant for the Refining stage of Signal. You
 turn raw user feedback into an implementation-ready draft spec.
 
 Output rules (follow exactly):
