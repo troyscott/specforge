@@ -53,7 +53,7 @@ async def session() -> AsyncIterator[AsyncSession]:
 
 
 async def _seed_parents(session: AsyncSession, issue_id: int = 142) -> None:
-    session.add(Customer(id=1, name="H&H Oil"))
+    session.add(Customer(id=1, name="Acme Co"))
     session.add(Project(id="ops-hub", customer_id=1, name="Ops Hub"))
     session.add(Issue(id=issue_id, project_id="ops-hub", title="fuel total bug"))
     await session.commit()
