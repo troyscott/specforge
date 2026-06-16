@@ -1,6 +1,6 @@
 # CLAUDE.md — Signal Refining Stage (Release 1)
 
-> Operating manual for Claude Code sessions building the **Refining stage** of Persepta Signal:
+> Operating manual for Claude Code sessions building the **Refining stage** of Signal:
 > the layer that turns raw user feedback into an implementation-ready spec (summary + acceptance
 > criteria + test plan) before anything syncs to GitHub.
 >
@@ -340,7 +340,7 @@ Each WI is sized for one focused session. Acceptance criteria are the PR's gate.
   gate partial with "Summary set" passing; sync button has `disabled` until gate clears.
 
 ### WI-7 — Seed + config + dev runbook  *(Worktree D, parallel)*
-- `scripts/seed.py` inserts one Customer (H&H Oil), one Project (ops-hub), one Issue (#142 fuel
+- `scripts/seed.py` inserts one Customer (Acme Co), one Project (ops-hub), one Issue (#142 fuel
   total bug) so the console has data on first run.
 - README section: env setup (micromamba `signal`), `.env`, run, seed, test.
 - **AC:** fresh clone → `micromamba create` → `alembic upgrade head` → `python scripts/seed.py` →
