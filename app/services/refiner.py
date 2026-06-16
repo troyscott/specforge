@@ -19,14 +19,23 @@ from typing import Any, Protocol, runtime_checkable
 from pydantic import ValidationError
 
 from app.config import get_settings
-from app.models.spec import RefinedSpec
+from app.models.spec import (
+    AcceptanceCriterion,
+    OpenQuestion,
+    RefinedSpec,
+    TestPlanItem,
+    TestType,
+)
 
 __all__ = [
     "DRAFT_SPEC_SYSTEM_PROMPT",
     "DraftParseError",
     "RefinerClient",
     "RefinerError",
+    "clarify",
     "draft_spec",
+    "draft_test_plan",
+    "remove_criterion",
 ]
 
 
@@ -188,3 +197,163 @@ def draft_spec(
     )
 
     return _parse_spec(_extract_text(message))
+
+
+# --- WI-5: test-plan drafting -------------------------------------------------
+#
+# draft_test_plan walks the spec's acceptance criteria and emits exactly one
+# TestPlanItem per criterion. Because each item's criterion_id is read straight
+# off the criterion being iterated, every reference is valid BY CONSTRUCTION and
+# the test plan covers every criterion (CLAUDE.md §4 referential-integrity seam).
+# No Anthropic call is needed: the mapping is total and deterministic, so it is
+# both cheaper and trivially network-free in tests. TestType is chosen by a
+# conservative heuristic that prefers parity/property/behavioral over manual.
+
+
+def _choose_test_type(criterion: AcceptanceCriterion) -> TestType:
+    """Pick a sensible TestType for a criterion, preferring automatable types.
+
+    Heuristic, in priority order:
+    - PARITY    — the criterion is about a computed value matching an expected
+      one (equality of totals/amounts/sums). These are the calc-bug cases the
+      parity discipline targets (CLAUDE.md §2: exact Decimal assertions).
+    - PROPERTY  — the criterion states an invariant that should hold for all/any
+      inputs ("always", "never", "for all", "any", "non-negative").
+    - BEHAVIORAL — a concrete observable behavior (default for the common case).
+    - MANUAL    — only when the criterion concerns inherently non-automatable
+      surface (visual/UI/screenshot/look-and-feel).
+    """
+    haystack = f"{criterion.given} {criterion.when} {criterion.then}".lower()
+
+    manual_markers = ("screenshot", "visual", "looks", "look and feel", "manually", "by eye")
+    if any(marker in haystack for marker in manual_markers):
+        return TestType.MANUAL
+
+    parity_markers = (
+        "equal",
+        "equals",
+        "matches",
+        "match",
+        "sum of",
+        "total",
+        "same as",
+        "reconcile",
+    )
+    if any(marker in haystack for marker in parity_markers):
+        return TestType.PARITY
+
+    property_markers = (
+        "always",
+        "never",
+        "for all",
+        "for any",
+        "any input",
+        "every",
+        "non-negative",
+        "invariant",
+        "idempotent",
+    )
+    if any(marker in haystack for marker in property_markers):
+        return TestType.PROPERTY
+
+    return TestType.BEHAVIORAL
+
+
+def draft_test_plan(spec: RefinedSpec) -> list[TestPlanItem]:
+    """Draft one TestPlanItem per acceptance criterion.
+
+    Every produced item references an existing criterion (valid by construction),
+    and together the items cover every criterion in the spec — there are no
+    dangling references and no uncovered criteria.
+
+    Args:
+        spec: The spec whose acceptance criteria to cover.
+
+    Returns:
+        A list of TestPlanItems, one per acceptance criterion, in criterion order.
+    """
+    return [
+        TestPlanItem(
+            criterion_id=criterion.id,
+            assertion=(f"Given {criterion.given}, when {criterion.when}, then {criterion.then}."),
+            test_type=_choose_test_type(criterion),
+        )
+        for criterion in spec.acceptance_criteria
+    ]
+
+
+# --- WI-5: clarification + cascade ----------------------------------------------
+
+
+def clarify(spec: RefinedSpec, question_id: str, answer: str) -> RefinedSpec:
+    """Fold a human's answer to an open question into the spec.
+
+    Marks the matching OpenQuestion resolved and stores the answer. Returns a
+    new RefinedSpec (a copy); the input is not mutated.
+
+    Args:
+        spec: The spec containing the question.
+        question_id: The id (e.g. "Q-1") of the question being answered.
+        answer: The human-supplied answer text.
+
+    Returns:
+        The updated spec with the question resolved.
+
+    Raises:
+        RefinerError: If no open question has the given id.
+    """
+    updated = spec.model_copy(deep=True)
+
+    for question in updated.open_questions:
+        if question.id == question_id:
+            question.resolved = True
+            question.answer = answer
+            return updated
+
+    raise RefinerError(f"no open question with id {question_id!r}")
+
+
+def remove_criterion(spec: RefinedSpec, criterion_id: str) -> RefinedSpec:
+    """Delete an acceptance criterion, cascading to its dependents.
+
+    Removes the criterion plus every TestPlanItem that references it and any
+    criterion-scoped OpenQuestion (an OpenQuestion whose id is suffixed with the
+    criterion id, e.g. "Q-1:AC-2"). This keeps references from dangling without
+    making the cascade a gate condition (CLAUDE.md §4 referential-integrity seam).
+
+    Returns a new RefinedSpec (a copy); the input is not mutated.
+
+    Args:
+        spec: The spec to edit.
+        criterion_id: The id (e.g. "AC-2") of the criterion to remove.
+
+    Returns:
+        The updated spec with the criterion and its dependents removed.
+
+    Raises:
+        RefinerError: If no acceptance criterion has the given id.
+    """
+    if criterion_id not in {c.id for c in spec.acceptance_criteria}:
+        raise RefinerError(f"no acceptance criterion with id {criterion_id!r}")
+
+    updated = spec.model_copy(deep=True)
+
+    updated.acceptance_criteria = [c for c in updated.acceptance_criteria if c.id != criterion_id]
+    # Cascade: drop test items that pointed at the removed criterion.
+    updated.test_plan = [t for t in updated.test_plan if t.criterion_id != criterion_id]
+    # Cascade: drop questions scoped to the removed criterion (id "<qid>:<crit>").
+    updated.open_questions = [
+        q for q in updated.open_questions if _question_scope(q) != criterion_id
+    ]
+
+    return updated
+
+
+def _question_scope(question: OpenQuestion) -> str | None:
+    """The criterion id an OpenQuestion is scoped to, or None if unscoped.
+
+    A criterion-scoped question carries the criterion id after a ':' in its id,
+    e.g. "Q-3:AC-2" is scoped to "AC-2". Plain ids ("Q-3") are unscoped.
+    """
+    _, sep, scope = question.id.partition(":")
+    return scope if sep else None
